@@ -81,7 +81,7 @@ function buildZip() {
 	basis="Packaging zip..."
 	baseDir=/tmp/e621downloader/pool$*
 
-	poolName=$(cat "$baseDir/meta.json" |jq -r '.name' |tr "_" " ")
+	poolName=$(cat "$baseDir/meta.json" |jq -r '.name' |tr "_" " " |sed -e 's/[^0-9a-z., \-]/_/gi')
 	poolDir=$(echo $(pwd)/$poolName)
 
 	postCount=$(cat "$baseDir/meta.json" |jq -r '.post_count')

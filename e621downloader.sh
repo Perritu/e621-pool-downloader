@@ -90,8 +90,7 @@ function getImages() {
 			if [[ "null" == "$postUrl" ]]; then
 				lnsay "" # just to clean the line
 				echo "https://e621.net/posts/$postId: Null url received." \
-				tee -a "/tmp/e621downloader/failedDownloads.log"
-				# echo "" # Just to put a new line.
+				|tee -a "/tmp/e621downloader/failedDownloads.log"
 				continue
 			fi
 
@@ -102,7 +101,6 @@ function getImages() {
 	done
 
 	lnsay "" # Clean the previous message
-	# echo "" # Just to put a new line.
 }
 
 # convertImages function. self descrived.
@@ -124,8 +122,8 @@ function convertImages() {
 		filename="${filename%.*}"
 		page=$(($page +1))
 
-		cwebp -q 100 "$postFile" -o "/tmp/e621downloader/Cache/$filename.webp" >/dev/null 2>&1
 		lnsay "Converting downloaded images... [$page/$postCount]"
+		cwebp -q 100 "$postFile" -o "/tmp/e621downloader/Cache/$filename.webp" >/dev/null 2>&1
 	done
 	lnsay ""
 }
@@ -176,35 +174,43 @@ if [ -f $(dirname "$0")"/.session" ]; then
 	sessionCookie=$(cat $(dirname "$0")"/.session")
 fi
 
+pools=$(
+	for token in $(echo $*); do
+		echo $token
+	done |\
+	grep -P '^\d+$' |\
+	sort -nu
+)
+
 if [[ "" == "$*" ]]; then
 	echo "Usage: e621downloader poolId [poolId [poolId [...]]]"
 	return
 fi
 
 echo "Build working directory."
-for pool in $(echo $*); do buildMeta $pool; done
+for pool in $pools; do buildMeta $pool; done
 echo ""
 
 echo "Downloading files."
-for pool in $(echo $*); do getImages $pool; done
+for pool in $pools; do getImages $pool; done
 echo ""
 
 echo "Converting files."
-for pool in $(echo $*); do convertImages $pool; done
+for pool in $pools; do convertImages $pool; done
 echo ""
 
 echo "Generating zip files."
-for pool in $(echo $*); do buildZip $pool; done
+for pool in $pools; do buildZip $pool; done
 echo ""
 
 echo "Cleaning temp files."
-for pool in $(echo $*); do
+for pool in $pools; do
 	rm -rf "/tmp/e621downloader/pool$pool" >/dev/null 2>&1
 done
 
 if [ -f "/tmp/e621downloader/failedDownloads.log" ]; then
 	echo "There was inaccesable files during downloads."
-	echo "See \`/tmp/e621downloader/failedDownloads.log\` for more information."
+	echo "See `realpath /tmp/e621downloader/failedDownloads.log` for more information."
 	echo ""
 	echo "To remove this message, remove or relocate the above log."
 fi

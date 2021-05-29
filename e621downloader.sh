@@ -5,7 +5,8 @@
 ## Core functions. Functions used to simplify common tasks.
 # fetch function. This runs a curl request with the proper user-agent.
 function fetch() {
-	userAgent="PoolDownloader/0.01 (by Shelrock; pd@angelgarcia.dev) Curl"
+	# userAgent="PoolDownloader/0.01 (by Shelrock; pd@angelgarcia.dev) Curl"
+	userAgent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.41 PoolDownloader/0.01 (by Shelrock; pd@angelgarcia.dev) Curl"
 
 	if [[ $(echo "$sessionCookie") ]]; then
 		curl -A "$userAgent" -b "$sessionCookie" -f $* 2>/dev/null
@@ -27,7 +28,10 @@ function buildMeta() {
 	lnsay "Fetching meta for pool $*"
 
 	# Fetch the pool metadata. Also, a projection discarrd irrelevant data.
-	fetch "https://e621.net/pools/$*.json" |jq '{id, name, post_count, post_ids}' >/tmp/e621downloader/$*.json
+	# fetch "https://e621.net/pools/$*.json" |jq '{id, name, post_count, post_ids}' >/tmp/e621downloader/$*.json
+	fetch "https://e621.net/pools/$*.json" |\
+	jq '{id, name, post_count, post_ids}' |\
+	jq --arg url "https://e621.net/pools/$*" '. += {url: $url}' >/tmp/e621downloader/$*.json
 
 	# Common vars used in the function.
 	poolId=$(cat "/tmp/e621downloader/$*.json" |jq -r .id)
@@ -156,6 +160,7 @@ function buildZip() {
 
 		lnsay "$basis [$page/$postCount] Placing files"
 		cp "/tmp/e621downloader/Cache/$postId.webp" "$poolDir/$pagePadded.webp" >/dev/null 2>&1
+		touch -c "/tmp/e621downloader/Cache/$postId.webp"
 	done
 
 	lnsay "$basis [-/-] Packaging 7z"
